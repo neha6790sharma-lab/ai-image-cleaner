@@ -1,0 +1,1 @@
+- [FastAPI multipart image processing](fastapi-multipart.md) — keep image and mask bytes in memory; use direct FormData for the browser upload.

@@ -1,0 +1,70 @@
+Build a complete AI Image Cleaner web app with the following stack and features. 
+Everything must be 100% free — no paid APIs, no API keys required.
+
+TECH STACK:
+- Backend: Python + FastAPI (serves both the API and the frontend)
+- Frontend: Single static HTML file (vanilla HTML/CSS/JS, no framework, no build step) served by FastAPI's StaticFiles
+- Image processing libraries: OpenCV (opencv-python), Pillow, numpy
+- Dark theme UI (background near-black, gold + cyan accent colors), mobile-friendly, rounded cards
+
+PROJECT STRUCTURE:
+ai-image-cleaner/
+  backend/
+    main.py
+    requirements.txt
+    static/
+      index.html
+
+FEATURE 1 — Upload Screen
+- A drag-and-drop upload zone plus click-to-browse file input
+- Accept only JPG, PNG, WEBP, max 15MB
+- Show a clear error message if file type/size is invalid
+- After a valid image is selected, load it into memory (JS Image object) and move to the tool menu
+
+FEATURE 2 — Tool Menu
+- After upload, show a 2x2 grid of 4 tool cards: "Remove Object", "Crop", "Convert Format", "Passport Size"
+- Clicking a card opens that tool's screen
+- Every tool screen has a "← Tools" button to go back to this menu, and the image stays loaded
+- A "Change Image" button anywhere resets back to the upload screen
+
+FEATURE 3 — Remove Object (AI background reconstruction)
+- Show the uploaded image on a canvas with a brush tool overlay
+- Brush size slider, Undo button, Clear Selection button
+- User paints over the object/person/text they want removed (red semi-transparent brush strokes = mask)
+- On "Remove Object" click: build a black/white mask (white = area to remove) from the painted strokes at full image resolution, send the original image file + mask as multipart form-data to POST /api/inpaint
+- Backend endpoint /api/inpaint: 
+  - validates content-type (jpeg/png/webp) and file size (max 15MB)
+  - reads image and mask into OpenCV arrays, resizes mask to match image if needed, thresholds mask to pure black/white
+  - runs cv2.inpaint() with INPAINT_TELEA algorithm, inpaintRadius=7
+  - returns the result as a PNG StreamingResponse
+  - all processing happens in memory, nothing is saved to disk
+- On success, show a before/after comparison with a draggable vertical slider (drag left/right to reveal before vs after), and a Download button to save the result as PNG
+- Show clear Hindi/English mixed error messages for invalid selection, processing failure, etc.
+
+FEATURE 4 — Crop (fully client-side, no backend call)
+- Show the image on a canvas with a draggable, resizable crop rectangle overlaid on top
+- Rectangle has 4 corner handles (drag to resize) and can be dragged from its body (to move), constrained within the image bounds, minimum size ~40px
+- A "Reset Box" button resets the crop box to a centered 70% default
+- "Crop & Download" button: maps the crop box's on-screen position back to the original full-resolution image coordinates, draws the cropped region onto a new canvas at full resolution, and downloads it as a PNG
+
+FEATURE 5 — Convert Format (fully client-side, no backend call)
+- Show a preview of the uploaded image
+- Dropdown to choose target format: JPG, PNG, WEBP
+- Quality slider (10–100) shown only for JPG/WEBP, hidden for PNG
+- "Convert & Download" button: draws the image onto a canvas (fill white background first if converting to JPG, since JPG has no transparency), exports via canvas.toBlob() with the chosen mime type and quality, and downloads it with the correct file extension
+
+FEATURE 6 — Passport / Document Photo Resize (fully client-side, no backend call)
+- Dropdown with common Indian document photo sizes, each showing exact pixel dimensions at 300 DPI:
+  - Passport Photo (2x2 in / 51x51mm) — 600x600px
+  - Visa / Passport (35x45mm) — 413x531px
+  - PAN Card (25x35mm) — 295x413px
+  - Stamp Size (20x25mm) — 236x295px
+- Live preview canvas at the selected target size: automatically center-crops the source image to match the target aspect ratio (cover-fit, no distortion/stretching), then scales it to the exact target pixel dimensions, with a white background fill
+- "Generate & Download" button exports the canvas as a JPG (quality 0.95) and downloads it
+
+GENERAL REQUIREMENTS:
+- No image is ever stored permanently on the server — processing is in-memory only
+- CORS enabled on the backend for local testing
+- Clean, consistent status messages (info/processing/error) shown to the user throughout
+- Fully responsive (works well on mobile screens)
+- Add a /api/health endpoint returning {"status": "ok"}
