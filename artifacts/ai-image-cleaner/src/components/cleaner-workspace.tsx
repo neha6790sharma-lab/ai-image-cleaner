@@ -83,6 +83,8 @@ function imageCanvas(image: HTMLImageElement, width = image.naturalWidth, height
   canvas.height = height;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Canvas is unavailable in this browser.');
+  context.fillStyle = '#fff';
+  context.fillRect(0, 0, width, height);
   context.drawImage(image, 0, 0, width, height);
   return canvas;
 }
@@ -167,6 +169,7 @@ function UploadZone({ onFile, error, inputRef }: { onFile: (file: File) => void;
         type="file"
         accept="image/jpeg,image/png,image/webp"
         className="hidden"
+        onClick={(event) => event.stopPropagation()}
         onChange={(event) => { handleFiles(event.target.files); event.currentTarget.value = ''; }}
       />
       <span className="mb-5 flex h-16 w-16 items-center justify-center rounded-[20px] border border-[#f0bd5b]/35 bg-[#f0bd5b]/10 text-[#f0bd5b] shadow-[0_12px_35px_rgba(240,189,91,.08)]">
@@ -217,7 +220,7 @@ function BeforeAfterSlider({ beforeUrl, afterUrl }: { beforeUrl: string; afterUr
   );
 }
 
-function RemoveEditor({ sourceUrl, onDone, onBack }: { sourceUrl: string; onDone: (blob: Blob) => void; onBack: () => void }) {
+function RemoveEditor({ sourceUrl, imageFile, onDone, onBack }: { sourceUrl: string; imageFile: File; onDone: (blob: Blob) => void; onBack: () => void }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -322,18 +325,26 @@ function RemoveEditor({ sourceUrl, onDone, onBack }: { sourceUrl: string; onDone
     setProcessing(true);
     setNotice('');
     try {
-      const [imageBlob, maskBlob] = await Promise.all([
-        fetch(sourceUrl).then((response) => response.blob()),
-        new Promise<Blob>((resolve, reject) => mask.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Mask export failed.')), 'image/png')),
-      ]);
+      const maskBlob = await new Promise<Blob>((resolve, reject) =>
+        mask.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Mask export failed.')), 'image/png'),
+      );
       const formData = new FormData();
-      formData.append('image', imageBlob, 'source-image');
+      formData.append('image', imageFile, imageFile.name);
       formData.append('mask', maskBlob, 'mask.png');
       const response = await fetch('/api/inpaint', { method: 'POST', body: formData });
-      if (!response.ok) throw new Error('The local cleanup service is unavailable.');
+      if (!response.ok) {
+        let message = 'The local cleanup service is unavailable.';
+        try {
+          const payload = await response.json() as { error?: string; detail?: string };
+          message = payload.error || payload.detail || message;
+        } catch {
+          // Keep the friendly fallback when the service returns a non-JSON error.
+        }
+        throw new Error(message);
+      }
       onDone(await response.blob());
-    } catch {
-      setNotice('Could not reach the local cleanup service. Try again in a moment.');
+    } catch (caughtError) {
+      setNotice(caughtError instanceof Error ? caughtError.message : 'Could not reach the local cleanup service. Try again in a moment.');
     } finally {
       setProcessing(false);
     }
@@ -592,7 +603,7 @@ export function CleanerWorkspace() {
   const renderTool = () => {
     if (!sourceUrl || !tool) return null;
     const common = { sourceUrl, onDone: finish, onBack: () => setTool(null) };
-    if (tool === 'remove') return <RemoveEditor {...common} />;
+    if (tool === 'remove' && sourceFile) return <RemoveEditor {...common} imageFile={sourceFile} />;
     if (tool === 'crop') return <CropEditor {...common} />;
     if (tool === 'convert') return <ConvertEditor {...common} />;
     return <PassportEditor {...common} />;
