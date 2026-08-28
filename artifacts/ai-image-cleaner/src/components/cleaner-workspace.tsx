@@ -23,6 +23,7 @@ import {
 
 type ToolId = 'remove' | 'crop' | 'convert' | 'passport';
 type OutputFormat = 'image/jpeg' | 'image/png' | 'image/webp';
+type CropInteraction = 'move' | 'nw' | 'ne' | 'sw' | 'se';
 
 type CropRect = { x: number; y: number; w: number; h: number };
 type Preset = { id: string; name: string; note: string; width: number; height: number };
@@ -407,14 +408,15 @@ function CropEditor({ sourceUrl, onDone, onBack }: { sourceUrl: string; onDone: 
   const imageRef = useRef<HTMLImageElement>(null);
   const cropStageRef = useRef<HTMLDivElement>(null);
   const [rect, setRect] = useState<CropRect>({ x: 8, y: 8, w: 84, h: 84 });
-  const [dragging, setDragging] = useState<'move' | 'resize' | null>(null);
+  const [dragging, setDragging] = useState<CropInteraction | null>(null);
+  const [notice, setNotice] = useState('');
   const startRef = useRef({ x: 0, y: 0, rect });
   const getPoint = (event: ReactPointerEvent<HTMLElement>) => {
     const bounds = cropStageRef.current?.getBoundingClientRect();
     if (!bounds) return { x: 0, y: 0 };
     return { x: ((event.clientX - bounds.left) / bounds.width) * 100, y: ((event.clientY - bounds.top) / bounds.height) * 100 };
   };
-  const begin = (event: ReactPointerEvent<HTMLElement>, mode: 'move' | 'resize') => {
+  const begin = (event: ReactPointerEvent<HTMLElement>, mode: CropInteraction) => {
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = getPoint(event);
     startRef.current = { x: point.x, y: point.y, rect };
@@ -427,18 +429,40 @@ function CropEditor({ sourceUrl, onDone, onBack }: { sourceUrl: string; onDone: 
     const dy = point.y - startRef.current.y;
     const origin = startRef.current.rect;
     if (dragging === 'move') setRect({ ...origin, x: Math.min(100 - origin.w, Math.max(0, origin.x + dx)), y: Math.min(100 - origin.h, Math.max(0, origin.y + dy)) });
-    else setRect({ ...origin, w: Math.min(100 - origin.x, Math.max(8, origin.w + dx)), h: Math.min(100 - origin.y, Math.max(8, origin.h + dy)) });
+    else {
+      const next = { ...origin };
+      if (dragging.includes('e')) next.w = Math.min(100 - origin.x, Math.max(8, origin.w + dx));
+      if (dragging.includes('s')) next.h = Math.min(100 - origin.y, Math.max(8, origin.h + dy));
+      if (dragging.includes('w')) {
+        const nextX = Math.min(origin.x + origin.w - 8, Math.max(0, origin.x + dx));
+        next.x = nextX;
+        next.w = origin.w + origin.x - nextX;
+      }
+      if (dragging.includes('n')) {
+        const nextY = Math.min(origin.y + origin.h - 8, Math.max(0, origin.y + dy));
+        next.y = nextY;
+        next.h = origin.h + origin.y - nextY;
+      }
+      setRect(next);
+    }
   };
   const exportCrop = async () => {
     const image = imageRef.current;
     if (!image) return;
-    const canvas = document.createElement('canvas');
-    const sx = (rect.x / 100) * image.naturalWidth;
-    const sy = (rect.y / 100) * image.naturalHeight;
-    canvas.width = Math.round((rect.w / 100) * image.naturalWidth);
-    canvas.height = Math.round((rect.h / 100) * image.naturalHeight);
-    canvas.getContext('2d')?.drawImage(image, sx, sy, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
-    onDone(await canvasBlob(canvas, 'image/png'));
+    setNotice('');
+    try {
+      const canvas = document.createElement('canvas');
+      const sx = (rect.x / 100) * image.naturalWidth;
+      const sy = (rect.y / 100) * image.naturalHeight;
+      canvas.width = Math.max(40, Math.round((rect.w / 100) * image.naturalWidth));
+      canvas.height = Math.max(40, Math.round((rect.h / 100) * image.naturalHeight));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Canvas is unavailable in this browser.');
+      context.drawImage(image, sx, sy, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
+      onDone(await canvasBlob(canvas, 'image/png'));
+    } catch (caughtError) {
+      setNotice(caughtError instanceof Error ? caughtError.message : 'Crop export failed. Please try again.');
+    }
   };
   return (
     <div className="cleaner-animate-in">
@@ -454,7 +478,21 @@ function CropEditor({ sourceUrl, onDone, onBack }: { sourceUrl: string; onDone: 
               <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3">
                 {Array.from({ length: 9 }).map((_, index) => <span key={index} className="border border-[#f0bd5b]/25" />)}
               </div>
-              <button type="button" aria-label="Resize crop area" data-testid="button-resize-crop" onPointerDown={(event) => { event.stopPropagation(); begin(event, 'resize'); }} className="absolute -bottom-2 -right-2 h-4 w-4 rounded-full border-2 border-[#171719] bg-[#f0bd5b] shadow-md" />
+              {([
+                ['nw', '-left-2 -top-2 cursor-nwse-resize'],
+                ['ne', '-right-2 -top-2 cursor-nesw-resize'],
+                ['sw', '-bottom-2 -left-2 cursor-nesw-resize'],
+                ['se', '-bottom-2 -right-2 cursor-nwse-resize'],
+              ] as const).map(([handle, position]) => (
+                <button
+                  key={handle}
+                  type="button"
+                  aria-label={`Resize crop area ${handle}`}
+                  data-testid={`button-resize-crop-${handle}`}
+                  onPointerDown={(event) => { event.stopPropagation(); begin(event, handle); }}
+                  className={`absolute h-4 w-4 rounded-full border-2 border-[#171719] bg-[#f0bd5b] shadow-md ${position}`}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -465,6 +503,7 @@ function CropEditor({ sourceUrl, onDone, onBack }: { sourceUrl: string; onDone: 
             <button type="button" data-testid="button-export-crop" onClick={exportCrop} className="flex items-center gap-2 rounded-xl bg-[#62e4dc] px-4 py-2 text-xs font-bold text-[#102021] hover:brightness-105"><Download size={14} /> Crop & download</button>
           </div>
         </div>
+        {notice && <p data-testid="text-crop-error" className="px-2 pt-3 text-xs text-[#f1837c]">{notice}</p>}
       </div>
     </div>
   );
@@ -474,12 +513,16 @@ function ConvertEditor({ sourceUrl, onDone, onBack }: { sourceUrl: string; onDon
   const [format, setFormat] = useState<OutputFormat>('image/jpeg');
   const [quality, setQuality] = useState(88);
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState('');
   const convert = async () => {
     setBusy(true);
+    setNotice('');
     try {
       const image = await loadImage(sourceUrl);
       const canvas = imageCanvas(image);
       onDone(await canvasBlob(canvas, format, quality / 100));
+    } catch (caughtError) {
+      setNotice(caughtError instanceof Error ? caughtError.message : 'Format conversion failed. Please try again.');
     } finally {
       setBusy(false);
     }
@@ -512,6 +555,7 @@ function ConvertEditor({ sourceUrl, onDone, onBack }: { sourceUrl: string; onDon
             <input data-testid="input-quality" disabled={format === 'image/png'} type="range" min="40" max="100" value={quality} onChange={(event) => setQuality(Number(event.target.value))} className="mt-4 w-full accent-[#f0bd5b]" />
             <p className="mt-2 text-[10px] leading-4 text-[#718082]">{format === 'image/png' ? 'PNG keeps every pixel.' : 'Higher quality means a larger file.'}</p>
           </div>
+          {notice && <p data-testid="text-convert-error" className="mt-4 text-xs leading-4 text-[#f1837c]">{notice}</p>}
           <button type="button" data-testid="button-convert-image" disabled={busy} onClick={convert} className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-[#f0bd5b] px-4 py-3 text-sm font-bold text-[#171719] hover:brightness-105 disabled:opacity-60">{busy ? 'Converting' : <><Download size={16} /> Convert & download</>}</button>
         </aside>
       </div>
@@ -522,8 +566,10 @@ function ConvertEditor({ sourceUrl, onDone, onBack }: { sourceUrl: string; onDon
 function PassportEditor({ sourceUrl, onDone, onBack }: { sourceUrl: string; onDone: (blob: Blob) => void; onBack: () => void }) {
   const [preset, setPreset] = useState(PRESETS[0]);
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState('');
   const exportPassport = async () => {
     setBusy(true);
+    setNotice('');
     try {
       const image = await loadImage(sourceUrl);
       const targetRatio = preset.width / preset.height;
@@ -539,6 +585,8 @@ function PassportEditor({ sourceUrl, onDone, onBack }: { sourceUrl: string; onDo
       context.fillRect(0, 0, preset.width, preset.height);
       context.drawImage(image, sx, sy, sw, sh, 0, 0, preset.width, preset.height);
       onDone(await canvasBlob(canvas, 'image/jpeg', .94));
+    } catch (caughtError) {
+      setNotice(caughtError instanceof Error ? caughtError.message : 'Document photo export failed. Please try again.');
     } finally { setBusy(false); }
   };
   return (
@@ -560,6 +608,7 @@ function PassportEditor({ sourceUrl, onDone, onBack }: { sourceUrl: string; onDo
             ))}
           </div>
           <div className="mt-5 rounded-xl border border-[#334145] bg-[#121719] p-3 text-[11px] leading-4 text-[#8f9da0]"><span className="mb-1 flex items-center gap-2 font-semibold text-[#c6cfca]"><CircleHelp size={13} className="text-[#62e4dc]" /> What happens</span> Your photo is center-cropped to the exact preset ratio, then exported as a JPG.</div>
+          {notice && <p data-testid="text-passport-error" className="mt-4 text-xs leading-4 text-[#f1837c]">{notice}</p>}
           <button type="button" data-testid="button-export-passport" disabled={busy} onClick={exportPassport} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#62e4dc] px-4 py-3 text-sm font-bold text-[#102021] hover:brightness-105 disabled:opacity-60">{busy ? 'Preparing' : <><Download size={16} /> Download JPG</>}</button>
         </aside>
       </div>
