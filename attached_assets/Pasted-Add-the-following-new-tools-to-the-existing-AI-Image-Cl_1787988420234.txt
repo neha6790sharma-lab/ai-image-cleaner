@@ -1,0 +1,54 @@
+Add the following new tools to the existing AI Image Cleaner app, without breaking or removing any 
+existing feature (Remove Object, Crop, Convert Format, Passport Size must keep working exactly as before). 
+Everything must remain 100% free — no paid APIs.
+
+Add 3 new tool cards to the "Pick a tool" screen, matching the existing card style exactly:
+
+TOOL — Rotate / Flip (fully client-side, canvas-based)
+- Buttons: Rotate Left 90°, Rotate Right 90°, Flip Horizontal, Flip Vertical
+- Live preview updates instantly on canvas as each action is applied (actions can be combined/stacked)
+- "Download" button exports the current rotated/flipped result as PNG
+
+TOOL — Adjust & Filters (fully client-side, canvas-based, live preview)
+- Sliders: Brightness (-100 to 100), Contrast (-100 to 100), Saturation (-100 to 100)
+- Filter presets as buttons: Normal, Black & White, Sepia (apply via CSS canvas filter or pixel manipulation, combinable with the sliders)
+- A "Reset" button resets sliders/filter to default
+- "Download" button exports the final result as PNG/JPG
+
+TOOL — Compress Image (fully client-side)
+- Show original file size
+- A quality slider (10-100%) and optionally a max-width dropdown (e.g. Original, 1920px, 1280px, 800px) 
+  to also resize down for extra size reduction
+- Show a live estimated/actual output file size as the slider moves (re-encode via canvas.toBlob and read blob.size)
+- "Download Compressed Image" button
+
+TOOL — Watermark / Add Text (fully client-side, canvas-based)
+- A text input box for the watermark text
+- Controls: font size, color picker, opacity slider, position (dropdown: top-left, top-right, bottom-left, 
+  bottom-right, center)
+- Live preview showing the text overlaid on the image
+- "Download" button exports the watermarked image
+
+TOOL — Remove Privacy Data (EXIF strip, fully client-side)
+- Simple one-click "Clean & Download" button: re-draws the image onto a fresh canvas and exports it 
+  (this naturally strips all EXIF/metadata since canvas re-encoding drops it)
+- Show a short message confirming metadata (location, device info, date) has been removed
+- No settings needed, just upload → clean → download
+
+TOOL — Background Remover (needs a backend AI model, free & open-source)
+- Add a new backend endpoint POST /api/remove-background
+- Use the "rembg" Python library (open-source, runs fully locally, downloads its small ONNX model 
+  automatically on first use, no API key, no cost) — add "rembg" and "onnxruntime" to requirements.txt
+- Endpoint accepts the uploaded image, runs rembg.remove() on it, and returns a transparent PNG 
+  (background removed) as a StreamingResponse
+- Frontend: show original image, a "Remove Background" button that calls this endpoint and shows 
+  a loading state while processing, then displays the result on a checkered transparency background
+- Add a toggle/buttons after removal: "Transparent Background" (default) or "White Background" 
+  (composite the transparent result onto a white canvas) — useful for passport photos
+- "Download" button exports the final PNG
+
+GENERAL:
+- All new tools follow the same "← Tools" back button pattern and dark theme styling already used 
+  in the app
+- No image is stored permanently on the server, all processing is in-memory
+- Show clear loading/error states, especially for Background Remover since it takes a few seconds

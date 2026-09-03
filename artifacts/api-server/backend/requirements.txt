@@ -4,3 +4,5 @@ opencv-python-headless
 pillow
 numpy
 python-multipart
+rembg
+onnxruntime

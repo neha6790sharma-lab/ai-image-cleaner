@@ -6,6 +6,16 @@ import numpy as np
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from starlette.concurrency import run_in_threadpool
+
+try:
+    from rembg import remove as _remove_background
+    _REMBG_AVAILABLE = True
+except Exception:
+    # rembg is optional at import time so the rest of the service still boots
+    # even when the dependency (or its ONNX runtime) is not installed yet.
+    _remove_background = None
+    _REMBG_AVAILABLE = False
 
 MAX_IMAGE_BYTES = 15 * 1024 * 1024
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -74,6 +84,36 @@ async def inpaint(image: UploadFile, mask: UploadFile):
         return error("PNG export nahi ho paaya. Please try again.", 500)
     return StreamingResponse(
         io.BytesIO(encoded.tobytes()),
+        media_type="image/png",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.post("/api/remove-background")
+async def remove_background(image: UploadFile):
+    """Strip the background with rembg (local ONNX model, no API key, free).
+
+    The heavier CPU work is offloaded to a worker thread via
+    ``run_in_threadpool`` so it never blocks the event loop, and everything
+    stays in memory — no file is written to disk.
+    """
+    if image.content_type not in ALLOWED_TYPES:
+        return error("Image file type not supported. JPG, PNG ya WEBP upload karein.", 400)
+    data = await image.read()
+    if len(data) > MAX_IMAGE_BYTES:
+        return error("File 15MB se chhoti honi chahiye.", 413)
+    if not _REMBG_AVAILABLE or _remove_background is None:
+        return error("Background removal service is not installed on this server.", 503)
+
+    try:
+        output = await run_in_threadpool(_remove_background, data)
+        buffer = io.BytesIO()
+        output.save(buffer, format="PNG")
+    except Exception:
+        return error("Background removal fail ho gayi. Please try a smaller image.", 500)
+
+    return StreamingResponse(
+        io.BytesIO(buffer.getvalue()),
         media_type="image/png",
         headers={"Cache-Control": "no-store"},
     )

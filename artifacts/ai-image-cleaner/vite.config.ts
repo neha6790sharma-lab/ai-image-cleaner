@@ -65,7 +65,8 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    port,
+    port,  
+          proxy: { '/api': 'http://localhost:8000' },
     strictPort: true,
     host: '0.0.0.0',
     allowedHosts: true,

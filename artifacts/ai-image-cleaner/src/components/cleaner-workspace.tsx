@@ -6,22 +6,36 @@ import {
   CircleHelp,
   Download,
   Eraser,
+  EyeOff,
+  FileArchive,
   FileImage,
   LockKeyhole,
   Maximize2,
   MousePointer2,
   RefreshCw,
   RotateCcw,
+  RotateCw,
   ScanLine,
+  Scissors,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
+  Type,
   Upload,
   Undo2,
   WandSparkles,
   X,
 } from 'lucide-react';
+import {
+  AdjustEditor,
+  BackgroundEditor,
+  CompressEditor,
+  PrivacyEditor,
+  RotateFlipEditor,
+  WatermarkEditor,
+} from '@/components/additional-tools';
 
-type ToolId = 'remove' | 'crop' | 'convert' | 'passport';
+type ToolId = 'remove' | 'crop' | 'convert' | 'passport' | 'rotate' | 'adjust' | 'compress' | 'watermark' | 'privacy' | 'background';
 type OutputFormat = 'image/jpeg' | 'image/png' | 'image/webp';
 type CropInteraction = 'move' | 'nw' | 'ne' | 'sw' | 'se';
 
@@ -36,6 +50,12 @@ const TOOLS: Array<{ id: ToolId; label: string; description: string; icon: typeo
   { id: 'crop', label: 'Crop', description: 'Frame the part that matters.', icon: Maximize2, accent: 'cyan' },
   { id: 'convert', label: 'Convert Format', description: 'JPG, PNG, or WEBP. Your call.', icon: RefreshCw, accent: 'gold' },
   { id: 'passport', label: 'Passport Size', description: 'India-ready document photo presets.', icon: ScanLine, accent: 'cyan' },
+  { id: 'rotate', label: 'Rotate / Flip', description: 'Spin, mirror, and export as PNG.', icon: RotateCw, accent: 'cyan' },
+  { id: 'adjust', label: 'Adjust & Filters', description: 'Brightness, contrast, sepia, B&W.', icon: SlidersHorizontal, accent: 'gold' },
+  { id: 'compress', label: 'Compress Image', description: 'Shrink file size for email & web.', icon: FileArchive, accent: 'gold' },
+  { id: 'watermark', label: 'Watermark / Add Text', description: 'Stamp text anywhere on the image.', icon: Type, accent: 'cyan' },
+  { id: 'privacy', label: 'Remove Privacy Data', description: 'Strip EXIF, GPS and device info.', icon: EyeOff, accent: 'gold' },
+  { id: 'background', label: 'Remove Background', description: 'Cut the subject out with a local AI model.', icon: Scissors, accent: 'cyan' },
 ];
 
 const PRESETS: Preset[] = [
@@ -655,6 +675,13 @@ export function CleanerWorkspace() {
     if (tool === 'remove' && sourceFile) return <RemoveEditor {...common} imageFile={sourceFile} />;
     if (tool === 'crop') return <CropEditor {...common} />;
     if (tool === 'convert') return <ConvertEditor {...common} />;
+    if (tool === 'passport') return <PassportEditor {...common} />;
+    if (tool === 'rotate') return <RotateFlipEditor sourceUrl={sourceUrl} onBack={() => setTool(null)} />;
+    if (tool === 'adjust') return <AdjustEditor sourceUrl={sourceUrl} onBack={() => setTool(null)} />;
+    if (tool === 'compress' && sourceFile) return <CompressEditor sourceUrl={sourceUrl} imageFile={sourceFile} onBack={() => setTool(null)} />;
+    if (tool === 'watermark') return <WatermarkEditor sourceUrl={sourceUrl} onBack={() => setTool(null)} />;
+    if (tool === 'privacy' && sourceFile) return <PrivacyEditor sourceUrl={sourceUrl} imageFile={sourceFile} onBack={() => setTool(null)} />;
+    if (tool === 'background' && sourceFile) return <BackgroundEditor sourceUrl={sourceUrl} imageFile={sourceFile} onBack={() => setTool(null)} />;
     return <PassportEditor {...common} />;
   };
   return (
@@ -671,7 +698,7 @@ export function CleanerWorkspace() {
               </div>
               <div className="cleaner-animate-in cleaner-delay-1"><UploadZone onFile={handleFile} error={error} inputRef={inputRef} /></div>
               <div className="cleaner-animate-in cleaner-delay-2 mt-5 grid gap-3 sm:grid-cols-3">
-                {[{ icon: LockKeyhole, title: 'Private by default', text: 'Files stay in memory.' }, { icon: WandSparkles, title: 'Useful, not noisy', text: 'Four focused tools.' }, { icon: ShieldCheck, title: '15 MB included', text: 'JPG, PNG, WEBP.' }].map((item) => {
+                {[{ icon: LockKeyhole, title: 'Private by default', text: 'Files stay in memory.' }, { icon: WandSparkles, title: 'Useful, not noisy', text: 'Ten focused tools.' }, { icon: ShieldCheck, title: '15 MB included', text: 'JPG, PNG, WEBP.' }].map((item) => {
                   const Icon = item.icon;
                   return <div key={item.title} className="flex items-center gap-3 rounded-xl border border-[#293337]/80 bg-[#151b1e]/60 px-3 py-3"><Icon size={16} className="shrink-0 text-[#f0bd5b]" /><span><span className="block text-xs font-semibold text-[#dce1da]">{item.title}</span><span className="block text-[11px] text-[#718082]">{item.text}</span></span></div>;
                 })}
@@ -696,7 +723,7 @@ export function CleanerWorkspace() {
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{TOOLS.map((item) => <ToolCard key={item.id} tool={item} selected={tool === item.id} onClick={() => setTool(item.id)} />)}</div>
               <div className="cleaner-animate-in cleaner-delay-1 mt-8 grid gap-4 rounded-2xl border border-[#293337] bg-[#151b1e]/75 p-5 sm:grid-cols-[1fr_auto] sm:items-center sm:p-6">
-                <div className="flex gap-4"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#62e4dc]/10 text-[#62e4dc]"><LockKeyhole size={19} /></div><div><h2 className="text-sm font-semibold text-[#e6e9df]">Your image stays yours.</h2><p className="mt-1 max-w-xl text-xs leading-5 text-[#8f9da0]">Every tool runs in this browser except Remove Object, which uses a private local service for the inpaint step. We do not create accounts, keep history, or store your files.</p></div></div>
+                <div className="flex gap-4"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#62e4dc]/10 text-[#62e4dc]"><LockKeyhole size={19} /></div><div><h2 className="text-sm font-semibold text-[#e6e9df]">Your image stays yours.</h2><p className="mt-1 max-w-xl text-xs leading-5 text-[#8f9da0]">Every tool runs in this browser except Remove Object and Remove Background, which use a private local service for the processing step. We do not create accounts, keep history, or store your files.</p></div></div>
                 <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.14em] text-[#718082]"><FileImage size={14} /> In-memory only</div>
               </div>
             </div>
