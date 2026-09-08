@@ -1,9 +1,12 @@
 import io
 import os
+import threading
+import time
+from collections import deque
 
 import cv2
 import numpy as np
-from fastapi import FastAPI, UploadFile
+from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
@@ -18,7 +21,14 @@ except Exception:
     _REMBG_AVAILABLE = False
 
 MAX_IMAGE_BYTES = 15 * 1024 * 1024
+MAX_IMAGE_DIMENSION = 8000
+MAX_IMAGE_PIXELS = 60_000_000
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+RATE_LIMIT_PER_MINUTE = 10
+RATE_LIMIT_WINDOW_SECONDS = 60.0
+_rate_events: dict[tuple[str, str], deque] = {}
+_rate_lock = threading.Lock()
 
 app = FastAPI(title="AI Image Cleaner API")
 app.add_middleware(
@@ -32,6 +42,50 @@ app.add_middleware(
 
 def error(message: str, status_code: int) -> JSONResponse:
     return JSONResponse(status_code=status_code, content={"error": message})
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _prune_rate_events(now: float) -> None:
+    expired = [
+        key for key, hits in _rate_events.items()
+        if (now - hits[-1]) > RATE_LIMIT_WINDOW_SECONDS
+    ]
+    for key in expired:
+        _rate_events.pop(key, None)
+
+
+def rate_limit(request: Request) -> None:
+    """Simple in-memory token bucket: 10 requests/minute per IP per endpoint."""
+    key = (_client_ip(request), request.url.path)
+    now = time.monotonic()
+    with _rate_lock:
+        _prune_rate_events(now)
+        hits = _rate_events.setdefault(key, deque())
+        cutoff = now - RATE_LIMIT_WINDOW_SECONDS
+        while hits and hits[0] <= cutoff:
+            hits.popleft()
+        if len(hits) >= RATE_LIMIT_PER_MINUTE:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many requests. Please wait a moment and try again.",
+            )
+        hits.append(now)
+
+
+def check_image_dimensions(image_array: np.ndarray, label: str) -> str | None:
+    """Reject decompression-bombs by capping decoded width/height and pixels."""
+    height, width = image_array.shape[:2]
+    if width > MAX_IMAGE_DIMENSION or height > MAX_IMAGE_DIMENSION:
+        return f"{label} bohat bada hai — width/height 8000px se zyada nahi honi chahiye."
+    if width * height > MAX_IMAGE_PIXELS:
+        return f"{label} ke pixels bahut zyada hain. Chhoti image use karein."
+    return None
 
 
 async def read_upload(upload: UploadFile, label: str) -> bytes | None:
@@ -50,7 +104,7 @@ async def health() -> dict[str, str]:
 
 
 @app.post("/api/inpaint")
-async def inpaint(image: UploadFile, mask: UploadFile):
+async def inpaint(image: UploadFile, mask: UploadFile, _rate: None = Depends(rate_limit)):
     if image.content_type not in ALLOWED_TYPES:
         return error("Image file type not supported. JPG, PNG ya WEBP upload karein.", 400)
     if mask.content_type not in ALLOWED_TYPES:
@@ -65,6 +119,13 @@ async def inpaint(image: UploadFile, mask: UploadFile):
     mask_array = cv2.imdecode(np.frombuffer(mask_bytes, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
     if image_array is None or mask_array is None:
         return error("Image ya mask read nahi ho paaya. Please try another file.", 400)
+
+    dim_error = check_image_dimensions(image_array, "Image")
+    if dim_error:
+        return error(dim_error, 400)
+    dim_error = check_image_dimensions(mask_array, "Mask")
+    if dim_error:
+        return error(dim_error, 400)
 
     height, width = image_array.shape[:2]
     if mask_array.shape[:2] != (height, width):
@@ -90,7 +151,7 @@ async def inpaint(image: UploadFile, mask: UploadFile):
 
 
 @app.post("/api/remove-background")
-async def remove_background(image: UploadFile):
+async def remove_background(image: UploadFile, _rate: None = Depends(rate_limit)):
     """Strip the background with rembg (local ONNX model, no API key, free).
 
     The heavier CPU work is offloaded to a worker thread via
@@ -104,6 +165,13 @@ async def remove_background(image: UploadFile):
         return error("File 15MB se chhoti honi chahiye.", 413)
     if not _REMBG_AVAILABLE or _remove_background is None:
         return error("Background removal service is not installed on this server.", 503)
+
+    preview = cv2.imdecode(np.frombuffer(data, dtype=np.uint8), cv2.IMREAD_COLOR)
+    if preview is None:
+        return error("Image read nahi ho paaya. Please try another file.", 400)
+    dim_error = check_image_dimensions(preview, "Image")
+    if dim_error:
+        return error(dim_error, 400)
 
     try:
         output = await run_in_threadpool(_remove_background, data)
