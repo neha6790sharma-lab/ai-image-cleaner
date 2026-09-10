@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /panel-x7k2mt9/
 
 Sitemap: https://example.com/sitemap.xml

@@ -5,6 +5,17 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import HomePage from '@/pages/home';
+import BlogIndexPage from '@/pages/blog/blog-index';
+import BlogPostPage from '@/pages/blog/blog-post';
+import AdminLoginPage from '@/pages/admin/admin-login';
+import AdminDashboardPage from '@/pages/admin/admin-dashboard';
+import PostEditorPage from '@/pages/admin/post-editor';
+import { RequireAdmin } from '@/components/admin/require-admin';
+import {
+  ADMIN_LOGIN_PATH,
+  ADMIN_DASHBOARD_PATH,
+  ADMIN_POST_EDIT_PATH,
+} from '@/lib/admin-config';
 import {
   Route,
   Switch,
@@ -20,7 +31,20 @@ function Router() {
     // survives a page crash.
     <RoutedErrorBoundary>
       <Switch>
-         <Route path="/" component={HomePage} />
+        <Route path="/" component={HomePage} />
+        <Route path="/blog" component={BlogIndexPage} />
+        <Route path="/blog/:slug" component={BlogPostPage} />
+        <Route path={ADMIN_LOGIN_PATH} component={AdminLoginPage} />
+        <Route path={ADMIN_DASHBOARD_PATH}>
+          <RequireAdmin>
+            <AdminDashboardPage />
+          </RequireAdmin>
+        </Route>
+        <Route path={ADMIN_POST_EDIT_PATH}>
+          <RequireAdmin>
+            <PostEditorPage />
+          </RequireAdmin>
+        </Route>
         <Route component={NotFound} />
       </Switch>
     </RoutedErrorBoundary>

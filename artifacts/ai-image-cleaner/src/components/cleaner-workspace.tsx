@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { useHealth } from '@workspace/api-client-react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchSiteSettings } from '@/lib/blog-data';
+import { setDocumentMeta, DEFAULT_SITE_TITLE, DEFAULT_SITE_DESCRIPTION } from '@/lib/seo';
 import {
   ArrowLeft,
   Check,
@@ -44,6 +47,17 @@ type Preset = { id: string; name: string; note: string; width: number; height: n
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+function heroSplit(title: string): { head: string; accent: string } {
+  const start = title.indexOf('|');
+  if (start === -1) return { head: title, accent: '' };
+  const end = title.indexOf('|', start + 1);
+  if (end === -1) return { head: title.replace('|', ''), accent: '' };
+  return {
+    head: (title.slice(0, start) + title.slice(end + 1)).trim(),
+    accent: title.slice(start + 1, end).trim(),
+  };
+}
 
 const TOOLS: Array<{ id: ToolId; label: string; description: string; icon: typeof Eraser; accent: string }> = [
   { id: 'remove', label: 'Remove Object', description: 'Paint it out. Let the pixels fill themselves in.', icon: Eraser, accent: 'gold' },
@@ -645,6 +659,28 @@ export function CleanerWorkspace() {
   const [tool, setTool] = useState<ToolId | null>(null);
   const [error, setError] = useState('');
 
+  const { data: siteSettings } = useQuery({
+    queryKey: ['site-settings'],
+    queryFn: fetchSiteSettings,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (!siteSettings) return;
+    const rawTitle = (siteSettings.homepage_title ?? '').trim();
+    if (!rawTitle) {
+      setDocumentMeta(DEFAULT_SITE_TITLE, siteSettings.homepage_tagline || DEFAULT_SITE_DESCRIPTION);
+      return;
+    }
+    const { head, accent } = heroSplit(rawTitle);
+    const plainTitle = `${head}${accent ? ` ${accent}` : ''}`.trim();
+    setDocumentMeta(
+      `${plainTitle} — cleaner.`,
+      siteSettings.homepage_tagline || DEFAULT_SITE_DESCRIPTION,
+    );
+  }, [siteSettings]);
+
   useEffect(() => () => { if (sourceUrl) URL.revokeObjectURL(sourceUrl); }, [sourceUrl]);
   useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
 
@@ -693,8 +729,17 @@ export function CleanerWorkspace() {
             <div className="mx-auto max-w-3xl">
               <div className="cleaner-animate-in mb-8 max-w-2xl">
                 <div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.2em] text-[#62e4dc]"><span className="h-px w-7 bg-[#62e4dc]" /> No account. No upload queue.</div>
-                <h1 className="max-w-[650px] text-4xl font-bold leading-[.98] tracking-[-.06em] text-[#f5f1e8] sm:text-6xl">Make your image<br /><span className="text-[#f0bd5b]">just right.</span></h1>
-                <p className="mt-5 max-w-[520px] text-base leading-7 text-[#9eabad] sm:text-lg">A small set of useful image tools for the moments when “good enough” is not. Quick edits, kept close.</p>
+                {(() => {
+                  const raw = siteSettings?.homepage_title ?? 'Make your image |just right.|';
+                  const { head, accent } = heroSplit(raw);
+                  return (
+                    <h1 className="max-w-[650px] text-4xl font-bold leading-[.98] tracking-[-.06em] text-[#f5f1e8] sm:text-6xl">
+                      {head}
+                      {accent && <><br /><span className="text-[#f0bd5b]">{accent}</span></>}
+                    </h1>
+                  );
+                })()}
+                <p className="mt-5 max-w-[520px] text-base leading-7 text-[#9eabad] sm:text-lg">{siteSettings?.homepage_tagline ?? 'A small set of useful image tools for the moments when “good enough” is not. Quick edits, kept close.'}</p>
               </div>
               <div className="cleaner-animate-in cleaner-delay-1"><UploadZone onFile={handleFile} error={error} inputRef={inputRef} /></div>
               <div className="cleaner-animate-in cleaner-delay-2 mt-5 grid gap-3 sm:grid-cols-3">
