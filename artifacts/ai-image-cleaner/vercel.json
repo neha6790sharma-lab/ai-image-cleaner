@@ -1,0 +1,14 @@
+{
+  "buildCommand": "pnpm run vercel-build",
+  "outputDirectory": "dist/public",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://ai-image-cleaner-nu7s.onrender.com/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
