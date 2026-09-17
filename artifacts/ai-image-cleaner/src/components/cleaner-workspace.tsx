@@ -9,21 +9,14 @@ import {
   CircleHelp,
   Download,
   Eraser,
-  EyeOff,
-  FileArchive,
   FileImage,
   LockKeyhole,
   Maximize2,
   MousePointer2,
   RefreshCw,
   RotateCcw,
-  RotateCw,
   ScanLine,
-  Scissors,
-  ShieldCheck,
-  SlidersHorizontal,
   Sparkles,
-  Type,
   Upload,
   Undo2,
   WandSparkles,
@@ -37,8 +30,8 @@ import {
   RotateFlipEditor,
   WatermarkEditor,
 } from '@/components/additional-tools';
+import { TOOLS, type ToolId } from '@/lib/tools';
 
-type ToolId = 'remove' | 'crop' | 'convert' | 'passport' | 'rotate' | 'adjust' | 'compress' | 'watermark' | 'privacy' | 'background';
 type OutputFormat = 'image/jpeg' | 'image/png' | 'image/webp';
 type CropInteraction = 'move' | 'nw' | 'ne' | 'sw' | 'se';
 
@@ -58,19 +51,6 @@ function heroSplit(title: string): { head: string; accent: string } {
     accent: title.slice(start + 1, end).trim(),
   };
 }
-
-const TOOLS: Array<{ id: ToolId; label: string; description: string; icon: typeof Eraser; accent: string }> = [
-  { id: 'remove', label: 'Remove Object', description: 'Paint it out. Let the pixels fill themselves in.', icon: Eraser, accent: 'gold' },
-  { id: 'crop', label: 'Crop', description: 'Frame the part that matters.', icon: Maximize2, accent: 'cyan' },
-  { id: 'convert', label: 'Convert Format', description: 'JPG, PNG, or WEBP. Your call.', icon: RefreshCw, accent: 'gold' },
-  { id: 'passport', label: 'Passport Size', description: 'India-ready document photo presets.', icon: ScanLine, accent: 'cyan' },
-  { id: 'rotate', label: 'Rotate / Flip', description: 'Spin, mirror, and export as PNG.', icon: RotateCw, accent: 'cyan' },
-  { id: 'adjust', label: 'Adjust & Filters', description: 'Brightness, contrast, sepia, B&W.', icon: SlidersHorizontal, accent: 'gold' },
-  { id: 'compress', label: 'Compress Image', description: 'Shrink file size for email & web.', icon: FileArchive, accent: 'gold' },
-  { id: 'watermark', label: 'Watermark / Add Text', description: 'Stamp text anywhere on the image.', icon: Type, accent: 'cyan' },
-  { id: 'privacy', label: 'Remove Privacy Data', description: 'Strip EXIF, GPS and device info.', icon: EyeOff, accent: 'gold' },
-  { id: 'background', label: 'Remove Background', description: 'Cut the subject out with a local AI model.', icon: Scissors, accent: 'cyan' },
-];
 
 const PRESETS: Preset[] = [
   { id: 'passport', name: 'Passport Photo', note: '2 × 2 in / 51 × 51 mm', width: 600, height: 600 },
@@ -721,33 +701,13 @@ export function CleanerWorkspace() {
     return <PassportEditor {...common} />;
   };
   return (
-    <main className="cleaner-shell cleaner-noise min-h-[100dvh] text-[#f5f1e8]">
+    <section id="tool" aria-label="Image tools" className="scroll-anchor text-[#f5f1e8]">
       <Header hasImage={Boolean(sourceUrl)} onReset={reset} />
-      <div className="cleaner-grid min-h-[calc(100dvh-73px)]">
+      <div className="cleaner-grid min-h-[540px]">
         <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 sm:py-12 lg:px-12">
           {!sourceFile ? (
             <div className="mx-auto max-w-3xl">
-              <div className="cleaner-animate-in mb-8 max-w-2xl">
-                <div className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.2em] text-[#62e4dc]"><span className="h-px w-7 bg-[#62e4dc]" /> No account. No upload queue.</div>
-                {(() => {
-                  const raw = siteSettings?.homepage_title ?? 'Make your image |just right.|';
-                  const { head, accent } = heroSplit(raw);
-                  return (
-                    <h1 className="max-w-[650px] text-4xl font-bold leading-[.98] tracking-[-.06em] text-[#f5f1e8] sm:text-6xl">
-                      {head}
-                      {accent && <><br /><span className="text-[#f0bd5b]">{accent}</span></>}
-                    </h1>
-                  );
-                })()}
-                <p className="mt-5 max-w-[520px] text-base leading-7 text-[#9eabad] sm:text-lg">{siteSettings?.homepage_tagline ?? 'A small set of useful image tools for the moments when “good enough” is not. Quick edits, kept close.'}</p>
-              </div>
-              <div className="cleaner-animate-in cleaner-delay-1"><UploadZone onFile={handleFile} error={error} inputRef={inputRef} /></div>
-              <div className="cleaner-animate-in cleaner-delay-2 mt-5 grid gap-3 sm:grid-cols-3">
-                {[{ icon: LockKeyhole, title: 'Private by default', text: 'Files stay in memory.' }, { icon: WandSparkles, title: 'Useful, not noisy', text: 'Ten focused tools.' }, { icon: ShieldCheck, title: '15 MB included', text: 'JPG, PNG, WEBP.' }].map((item) => {
-                  const Icon = item.icon;
-                  return <div key={item.title} className="flex items-center gap-3 rounded-xl border border-[#293337]/80 bg-[#151b1e]/60 px-3 py-3"><Icon size={16} className="shrink-0 text-[#f0bd5b]" /><span><span className="block text-xs font-semibold text-[#dce1da]">{item.title}</span><span className="block text-[11px] text-[#718082]">{item.text}</span></span></div>;
-                })}
-              </div>
+              <div className="cleaner-animate-in"><UploadZone onFile={handleFile} error={error} inputRef={inputRef} /></div>
             </div>
           ) : resultUrl ? (
             <div className="mx-auto max-w-5xl cleaner-animate-in">
@@ -775,7 +735,6 @@ export function CleanerWorkspace() {
           )}
         </div>
       </div>
-      <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-[#252f33] px-4 py-4 text-[10px] uppercase tracking-[.14em] text-[#647477] sm:px-12"><span>Made for the one image you need right now.</span><span className="flex items-center gap-2"><ShieldCheck size={12} /> No account · No cloud library</span></footer>
-    </main>
+    </section>
   );
 }

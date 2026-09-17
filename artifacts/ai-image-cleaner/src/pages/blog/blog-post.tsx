@@ -3,9 +3,12 @@ import { Link, useParams } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Sparkles, ArrowLeft, ArrowRight, FileQuestion, ShieldCheck, CalendarDays } from 'lucide-react';
+import { ArrowRight, FileQuestion, ShieldCheck, CalendarDays } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
+import { SiteNavbar } from '@/components/site-navbar';
+import { SiteFooter } from '@/components/site-footer';
+import { AboutSection } from '@/components/sections/about';
 import { fetchPostBySlug, formatDate } from '@/lib/blog-data';
 import { setDocumentMeta, resetDocumentMeta } from '@/lib/seo';
 
@@ -28,21 +31,9 @@ export default function BlogPostPage() {
 
   return (
     <main className="cleaner-shell cleaner-noise min-h-[100dvh] text-[#f5f1e8]">
-      <header className="flex items-center justify-between border-b border-[#252f33] px-4 py-4 sm:px-8 lg:px-12">
-        <Link href="/" className="group flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#f0bd5b]/50 bg-[#f0bd5b]/10 text-[#f0bd5b] transition-transform group-hover:rotate-6">
-            <Sparkles size={17} strokeWidth={1.8} />
-          </span>
-          <span className="block text-[15px] font-bold tracking-[-0.02em] text-[#f5f1e8]">
-            cleaner<span className="text-[#f0bd5b]">.</span>
-          </span>
-        </Link>
-        <Link href="/blog" className="flex items-center gap-2 text-xs font-medium text-[#9eabad] transition-colors hover:text-[#f5f1e8]">
-          <ArrowLeft size={14} /> All posts
-        </Link>
-      </header>
+      <SiteNavbar />
 
-      <div className="cleaner-grid min-h-[calc(100dvh-73px)]">
+      <div className="cleaner-grid">
         <div className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-8">
           {isLoading ? (
             <div className="flex items-center justify-center py-24">
@@ -113,6 +104,9 @@ export default function BlogPostPage() {
           )}
         </div>
       </div>
+
+      <AboutSection />
+      <SiteFooter />
     </main>
   );
 }

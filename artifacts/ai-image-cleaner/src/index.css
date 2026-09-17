@@ -320,6 +320,16 @@
     @apply font-sans antialiased bg-background text-foreground;
     min-width: 320px;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
 }
 
 @layer utilities {
@@ -354,6 +364,7 @@
   }
   .cleaner-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
   .cleaner-scrollbar::-webkit-scrollbar-thumb { background: #354247; border-radius: 99px; }
+  .scroll-anchor { scroll-margin-top: 88px; }
 }
 
 @keyframes cleaner-in {
