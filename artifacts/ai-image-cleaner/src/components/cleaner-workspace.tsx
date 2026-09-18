@@ -133,27 +133,29 @@ function Header({ hasImage, onReset }: { hasImage: boolean; onReset: () => void 
   const health = useHealth();
   const isHealthy = health.data?.status === 'ok' || health.data?.status === 'healthy';
   return (
-    <header className="flex items-center justify-between border-b border-[#252f33] px-4 py-4 sm:px-8 lg:px-12">
-      <button type="button" data-testid="button-brand-reset" onClick={onReset} className="group flex items-center gap-3">
-        <span className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#f0bd5b]/50 bg-[#f0bd5b]/10 text-[#f0bd5b] transition-transform group-hover:rotate-6">
-          <Sparkles size={17} strokeWidth={1.8} />
-          <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[#62e4dc]" />
-        </span>
-        <span className="text-left">
-          <span className="block text-[15px] font-bold tracking-[-0.02em] text-[#f5f1e8]">cleaner<span className="text-[#f0bd5b]">.</span></span>
-          <span className="hidden text-[10px] uppercase tracking-[.18em] text-[#748487] sm:block">private image utility</span>
-        </span>
-      </button>
-      <div className="flex items-center gap-3">
-        {hasImage && (
-          <button type="button" data-testid="button-change-image" onClick={onReset} className="hidden items-center gap-2 text-xs font-medium text-[#9eabad] transition-colors hover:text-[#f5f1e8] sm:flex">
-            <RotateCcw size={14} /> Change image
-          </button>
-        )}
-        <div data-testid="status-health" className="flex items-center gap-2 rounded-full border border-[#293337] bg-[#171d20] px-3 py-1.5 text-[11px] text-[#9eabad]">
-          <span className={`h-1.5 w-1.5 rounded-full ${health.isLoading ? 'bg-[#f0bd5b] animate-pulse' : isHealthy ? 'bg-[#62e4dc]' : 'bg-[#718082]'}`} />
-          <span className="hidden sm:inline">{health.isLoading ? 'Checking local service' : isHealthy ? 'Local service ready' : 'Runs in your browser'}</span>
-          <span className="sm:hidden">Local</span>
+    <header className="border-b border-[#252f33]">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-8 lg:px-12">
+        <button type="button" data-testid="button-brand-reset" onClick={onReset} className="group flex items-center gap-3">
+          <span className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#f0bd5b]/50 bg-[#f0bd5b]/10 text-[#f0bd5b] transition-transform group-hover:rotate-6">
+            <Sparkles size={17} strokeWidth={1.8} />
+            <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[#62e4dc]" />
+          </span>
+          <span className="text-left">
+            <span className="block text-[15px] font-bold tracking-[-0.02em] text-[#f5f1e8]">cleaner<span className="text-[#f0bd5b]">.</span></span>
+            <span className="hidden text-[10px] uppercase tracking-[.18em] text-[#748487] sm:block">private image utility</span>
+          </span>
+        </button>
+        <div className="flex items-center gap-3">
+          {hasImage && (
+            <button type="button" data-testid="button-change-image" onClick={onReset} className="hidden items-center gap-2 text-xs font-medium text-[#9eabad] transition-colors hover:text-[#f5f1e8] sm:flex">
+              <RotateCcw size={14} /> Change image
+            </button>
+          )}
+          <div data-testid="status-health" className="flex items-center gap-2.5 rounded-full border border-[#293337] bg-[#171d20] px-3.5 py-2 text-xs leading-none text-[#9eabad]">
+            <span className={`h-2 w-2 rounded-full ${health.isLoading ? 'bg-[#f0bd5b] animate-pulse' : isHealthy ? 'bg-[#62e4dc]' : 'bg-[#718082]'}`} />
+            <span className="hidden sm:inline">{health.isLoading ? 'Checking local service' : isHealthy ? 'Local service ready' : 'Runs in your browser'}</span>
+            <span className="sm:hidden">Local</span>
+          </div>
         </div>
       </div>
     </header>

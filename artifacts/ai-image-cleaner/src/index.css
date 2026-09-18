@@ -365,11 +365,37 @@
   .cleaner-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
   .cleaner-scrollbar::-webkit-scrollbar-thumb { background: #354247; border-radius: 99px; }
   .scroll-anchor { scroll-margin-top: 88px; }
+  .cleaner-float { animation: cleaner-float 7s ease-in-out infinite; }
+  .cleaner-float-slow { animation-duration: 10s; }
+  .cleaner-glow {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 9999px;
+  }
+  .cleaner-glow-gold {
+    background: radial-gradient(closest-side, rgba(240, 189, 91, 0.2), rgba(240, 189, 91, 0));
+  }
+  .cleaner-glow-cyan {
+    background: radial-gradient(closest-side, rgba(98, 228, 220, 0.15), rgba(98, 228, 220, 0));
+  }
 }
 
 @keyframes cleaner-in {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cleaner-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cleaner-float,
+  .cleaner-float-slow,
+  .cleaner-animate-in {
+    animation: none;
+  }
 }
 
 /**

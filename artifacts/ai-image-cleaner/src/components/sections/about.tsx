@@ -27,7 +27,7 @@ export function AboutSection() {
   return (
     <section id="about" className="scroll-anchor border-t border-[#252f33]">
       <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-8 sm:py-20 lg:px-12">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)] lg:items-start">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)]">
           <div className="cleaner-animate-in">
             <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.2em] text-[#62e4dc]">
               <span className="h-px w-7 bg-[#62e4dc]" /> Why cleaner.
@@ -58,7 +58,7 @@ export function AboutSection() {
               </p>
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+          <div className="grid gap-3 sm:grid-cols-2 lg:h-full lg:grid-cols-1 lg:grid-rows-[repeat(4,minmax(0,1fr))]">
             {TRUST_POINTS.map((point) => {
               const Icon = point.icon;
               return (
