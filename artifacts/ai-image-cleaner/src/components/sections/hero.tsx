@@ -121,7 +121,7 @@ function HeroMockup() {
             <span className="rounded-lg bg-[#f0bd5b] px-3 py-1 text-[10px] font-bold text-[#171719]">Export PNG</span>
           </div>
         </div>
-        <div className="cleaner-float cleaner-float-slow absolute -right-3 -top-4 flex items-center gap-2 rounded-2xl border border-[#293337] bg-[#171d20] px-3 py-2 shadow-xl sm:-right-8">
+        <div className="cleaner-float cleaner-float-slow absolute -right-3 -top-9 flex items-center gap-2 rounded-2xl border border-[#293337] bg-[#171d20] px-3 py-2 shadow-xl sm:-right-8">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#62e4dc]/10 text-[#62e4dc]">
             <EyeOff size={14} strokeWidth={1.8} />
           </span>

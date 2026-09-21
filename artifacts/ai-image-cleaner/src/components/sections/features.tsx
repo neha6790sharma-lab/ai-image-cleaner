@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { TOOLS, type ToolId, type ToolInfo } from '@/lib/tools';
-import { scrollToSection } from '@/lib/section-nav';
+import { scrollToSection, subscribeActiveTool } from '@/lib/section-nav';
 
 const TAB_ACCENT = {
   gold: {
@@ -46,9 +46,14 @@ function ToolDetailCard({ tool }: { tool: ToolInfo }) {
   );
 }
 
-export function FeaturesShowcase() {
-  const [activeTool, setActiveTool] = useState<ToolId | null>(null);
+export function FeaturesShowcase({ initialTool = null }: { initialTool?: ToolId | null }) {
+  const [activeTool, setActiveTool] = useState<ToolId | null>(initialTool);
   const active = activeTool ? TOOLS.find((tool) => tool.id === activeTool) ?? null : null;
+
+  useEffect(() => {
+    const unsubscribe = subscribeActiveTool(setActiveTool);
+    return unsubscribe;
+  }, []);
 
   return (
     <section id="features" className="scroll-anchor border-t border-[#252f33] bg-[#121719]/40">
