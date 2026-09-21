@@ -5,11 +5,18 @@
  * Usage (from this project folder):
  *   pnpm sitemap
  *
- * Runs at build/deploy time (this is a static SPA, so the sitemap has to be
- * generated before you ship). Only PUBLISHED posts are included - drafts and
- * the secret admin panel are never listed.
+ * Runs automatically at deploy time (vercel-build) - this is a static SPA, so
+ * the sitemap is generated from Supabase right before the assets are built
+ * rather than served from a serverless function (the app has no public API
+ * routes). Only PUBLISHED posts are included - drafts and the secret admin
+ * panel are never listed.
  *
- * Optional env: SITE_URL (defaults to the https://example.com used today).
+ * Never fails the build: if Supabase credentials are not present (e.g. a local
+ * build without .env) it writes a minimal valid sitemap with the homepage and
+ * the /blog listing so crawlers still see the static core of the site.
+ *
+ * Optional env: SITE_URL (defaults to the https://example.com used today),
+ * VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY or SUPABASE_SECRET_KEY.
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -17,30 +24,9 @@ import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const url = process.env.VITE_SUPABASE_URL;
+const anon = process.env.VITE_SUPABASE_ANON_KEY;
 const secret = process.env.SUPABASE_SECRET_KEY;
-const SITE_URL = (process.env.SITE_URL || 'https://example.com').replace(/\/$/, '');
-
-if (!url || !secret) {
-  console.error(
-    '\n[sitemap] Missing VITE_SUPABASE_URL or SUPABASE_SECRET_KEY in .env. Aborting.\n',
-  );
-  process.exit(1);
-}
-
-const supabase = createClient(url, secret, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
-
-const { data: posts, error } = await supabase
-  .from('blog_posts')
-  .select('slug, updated_at')
-  .eq('status', 'published')
-  .order('published_at', { ascending: false });
-
-if (error) {
-  console.error(`\n[sitemap] Could not read published posts: ${error.message}\n`);
-  process.exit(1);
-}
+const SITE_URL = (process.env.SITE_URL || 'https://example.com').replace(/\/+$/, '');
 
 function escapeXml(value) {
   return String(value)
@@ -59,22 +45,51 @@ function urlBlock(loc, mod) {
   );
 }
 
-const newestMod = posts?.[0]?.updated_at?.slice(0, 10);
-const lines = [
-  '<?xml version="1.0" encoding="UTF-8"?>',
-  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-  urlBlock(`${SITE_URL}/`),
-  urlBlock(`${SITE_URL}/blog`, newestMod),
-  ...(posts || []).map((post) =>
-    urlBlock(`${SITE_URL}/blog/${post.slug}`, post.updated_at),
-  ),
-  '</urlset>',
-  '',
-];
+function buildSitemap(posts = []) {
+  const newestMod = posts?.[0]?.updated_at?.slice(0, 10);
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    urlBlock(`${SITE_URL}/`),
+    urlBlock(`${SITE_URL}/blog`, newestMod),
+    ...(posts || []).map((post) =>
+      urlBlock(`${SITE_URL}/blog/${post.slug}`, post.updated_at),
+    ),
+    '</urlset>',
+    '',
+  ].join('\n');
+}
 
 const target = resolve(process.cwd(), 'public', 'sitemap.xml');
-writeFileSync(target, lines.join('\n'), 'utf8');
 
+let posts = [];
+if (!url) {
+  console.warn('[sitemap] Missing VITE_SUPABASE_URL - writing a minimal sitemap.');
+} else if (!anon && !secret) {
+  console.warn(
+    '[sitemap] Missing VITE_SUPABASE_ANON_KEY / SUPABASE_SECRET_KEY - writing a minimal sitemap.',
+  );
+} else {
+  const supabase = createClient(url, anon || secret, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  try {
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .select('slug, updated_at')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false });
+    if (error) {
+      console.warn(`[sitemap] Could not read published posts: ${error.message}`);
+    } else {
+      posts = data ?? [];
+    }
+  } catch (error) {
+    console.warn(`[sitemap] Could not read published posts: ${error.message}`);
+  }
+}
+
+writeFileSync(target, buildSitemap(posts), 'utf8');
 console.log(
-  `[sitemap] Wrote ${target} with ${(posts || []).length + 2} URLs (${posts?.length ?? 0} published posts).`,
+  `[sitemap] Wrote ${target} with ${posts.length + 2} URLs (${posts.length} published posts).`,
 );

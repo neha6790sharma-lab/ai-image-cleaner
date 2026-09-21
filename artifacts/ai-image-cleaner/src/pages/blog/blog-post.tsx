@@ -9,8 +9,14 @@ import { Button } from '@/components/ui/button';
 import { SiteNavbar } from '@/components/site-navbar';
 import { SiteFooter } from '@/components/site-footer';
 import { AboutSection } from '@/components/sections/about';
-import { fetchPostBySlug, formatDate } from '@/lib/blog-data';
-import { setDocumentMeta, resetDocumentMeta } from '@/lib/seo';
+import { fetchPostBySlug, formatDate, stripMarkdown } from '@/lib/blog-data';
+import {
+  setDocumentMeta,
+  resetDocumentMeta,
+  SITE_URL,
+  DEFAULT_OG_IMAGE,
+  type PageMeta,
+} from '@/lib/seo';
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -21,13 +27,54 @@ export default function BlogPostPage() {
   });
 
   useEffect(() => {
-    if (!post) return;
-    setDocumentMeta(
-      `${post.title} — cleaner.`,
-      post.meta_description || post.excerpt || post.title,
-    );
+    let meta: PageMeta;
+    if (post) {
+      const description =
+        post.meta_description || post.excerpt || stripMarkdown(post.content).slice(0, 150) || post.title;
+      const postUrl = `${SITE_URL}/blog/${post.slug}`;
+      const ogImage = post.featured_image || DEFAULT_OG_IMAGE;
+      const title = `${post.title} — cleaner.`;
+      meta = {
+        title,
+        description,
+        canonical: postUrl,
+        og: {
+          type: 'article',
+          title,
+          description,
+          url: postUrl,
+          image: ogImage,
+        },
+        twitter: {
+          card: 'summary_large_image',
+          title,
+          description,
+          image: ogImage,
+        },
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'BlogPosting',
+          mainEntityOfPage: { '@type': 'WebPage', '@id': postUrl },
+          headline: post.title,
+          description,
+          image: ogImage,
+          url: postUrl,
+          datePublished: post.published_at || post.created_at,
+          dateModified: post.updated_at,
+          author: { '@type': 'Organization', name: 'cleaner.' },
+        },
+      };
+    } else if (!isLoading) {
+      meta = {
+        title: 'Post not found — cleaner.',
+        description: 'This post does not exist or has not been published yet.',
+      };
+    } else {
+      return resetDocumentMeta;
+    }
+    setDocumentMeta(meta);
     return resetDocumentMeta;
-  }, [post]);
+  }, [post, isLoading]);
 
   return (
     <main className="cleaner-shell cleaner-noise min-h-[100dvh] text-[#f5f1e8]">

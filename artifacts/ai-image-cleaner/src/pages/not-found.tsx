@@ -1,7 +1,17 @@
+import { useEffect } from 'react';
 import { Link } from 'wouter';
 import { Sparkles } from 'lucide-react';
+import { setDocumentMeta, resetDocumentMeta } from '@/lib/seo';
 
 export default function NotFound() {
+  useEffect(() => {
+    setDocumentMeta({
+      title: 'Page not found — cleaner.',
+      description: 'This page does not exist. Head back to the cleaner. homepage or browse the blog.',
+    });
+    return resetDocumentMeta;
+  }, []);
+
   return (
     <main className="flex min-h-[100dvh] w-full items-center justify-center cleaner-shell">
       <div className="mx-4 w-full max-w-md">

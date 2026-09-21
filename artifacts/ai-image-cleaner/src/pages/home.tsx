@@ -9,6 +9,7 @@ import { AboutSection } from '@/components/sections/about';
 import { FaqSection } from '@/components/sections/faq';
 import { fetchSiteSettings } from '@/lib/blog-data';
 import { consumePendingSection, consumePendingTool, scrollToSection } from '@/lib/section-nav';
+import { clearPageMeta } from '@/lib/seo';
 
 export default function HomePage() {
   const [initialTool] = useState(() => consumePendingTool());
@@ -20,6 +21,7 @@ export default function HomePage() {
   });
 
   useEffect(() => {
+    clearPageMeta();
     const pending = consumePendingSection();
     if (pending) scrollToSection(pending);
   }, []);

@@ -12,7 +12,7 @@ import {
   type BlogPost,
 } from '@/lib/blog-data';
 import { useEffect } from 'react';
-import { setDocumentMeta, resetDocumentMeta } from '@/lib/seo';
+import { setDocumentMeta, resetDocumentMeta, SITE_URL, DEFAULT_OG_IMAGE } from '@/lib/seo';
 
 const TOOL_LINES = [
   'Remove Object — brush away photobombers, cables, and blemishes while local AI fills in the gap.',
@@ -66,8 +66,28 @@ export default function BlogIndexPage() {
     queryFn: fetchPublishedPosts,
   });
 
+  const BLOG_DESCRIPTION =
+    'Practical, no-fluff guides to everyday image problems — removing photobombers, cropping, compressing, passport sizing, and keeping photos private in your browser.';
+
   useEffect(() => {
-    setDocumentMeta('Blog — cleaner.', 'Notes, tips and updates from the cleaner. team.');
+    setDocumentMeta({
+      title: 'Blog — cleaner.',
+      description: BLOG_DESCRIPTION,
+      canonical: `${SITE_URL}/blog`,
+      og: {
+        type: 'website',
+        title: 'Blog — cleaner.',
+        description: BLOG_DESCRIPTION,
+        url: `${SITE_URL}/blog`,
+        image: DEFAULT_OG_IMAGE,
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: 'Blog — cleaner.',
+        description: BLOG_DESCRIPTION,
+        image: DEFAULT_OG_IMAGE,
+      },
+    });
     return resetDocumentMeta;
   }, []);
 
