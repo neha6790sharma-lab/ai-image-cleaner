@@ -10,23 +10,12 @@ import BlogPostPage from '@/pages/blog/blog-post';
 import AdminLoginPage from '@/pages/admin/admin-login';
 import AdminDashboardPage from '@/pages/admin/admin-dashboard';
 import PostEditorPage from '@/pages/admin/post-editor';
-import GurugramCityPage from '@/pages/cities/gurugram';
-import FaridabadCityPage from '@/pages/cities/faridabad';
-import PanipatCityPage from '@/pages/cities/panipat';
-import AmbalaCityPage from '@/pages/cities/ambala';
-import KarnalCityPage from '@/pages/cities/karnal';
-import KurukshetraCityPage from '@/pages/cities/kurukshetra';
-import KaithalCityPage from '@/pages/cities/kaithal';
-import HisarCityPage from '@/pages/cities/hisar';
-import RohtakCityPage from '@/pages/cities/rohtak';
-import SonipatCityPage from '@/pages/cities/sonipat';
-import PanchkulaCityPage from '@/pages/cities/panchkula';
-import YamunanagarCityPage from '@/pages/cities/yamunanagar';
-import SirsaCityPage from '@/pages/cities/sirsa';
-import BhiwaniCityPage from '@/pages/cities/bhiwani';
-import RewariCityPage from '@/pages/cities/rewari';
-import JindCityPage from '@/pages/cities/jind';
-import { CITY_SLUGS, cityPath } from '@/lib/city-data';
+import AndroidDevicePage from '@/pages/devices/android';
+import IphoneDevicePage from '@/pages/devices/iphone';
+import PcDevicePage from '@/pages/devices/pc';
+import LaptopDevicePage from '@/pages/devices/laptop';
+import MacBookDevicePage from '@/pages/devices/macbook';
+import { DEVICE_PAGES, type DevicePageInfo } from '@/lib/device-data';
 import { RequireAdmin } from '@/components/admin/require-admin';
 import {
   ADMIN_LOGIN_PATH,
@@ -42,24 +31,13 @@ import {
 
 const queryClient = new QueryClient();
 
-const CITY_PAGES = {
-  gurugram: GurugramCityPage,
-  faridabad: FaridabadCityPage,
-  panipat: PanipatCityPage,
-  ambala: AmbalaCityPage,
-  karnal: KarnalCityPage,
-  kurukshetra: KurukshetraCityPage,
-  kaithal: KaithalCityPage,
-  hisar: HisarCityPage,
-  rohtak: RohtakCityPage,
-  sonipat: SonipatCityPage,
-  panchkula: PanchkulaCityPage,
-  yamunanagar: YamunanagarCityPage,
-  sirsa: SirsaCityPage,
-  bhiwani: BhiwaniCityPage,
-  rewari: RewariCityPage,
-  jind: JindCityPage,
-} as const;
+const DEVICE_PAGES_BY_PATH: Record<string, () => ReactNode> = {
+  '/image-editor-for-android': AndroidDevicePage,
+  '/image-editor-for-iphone': IphoneDevicePage,
+  '/image-editor-for-pc': PcDevicePage,
+  '/image-editor-for-laptop': LaptopDevicePage,
+  '/image-editor-for-macbook': MacBookDevicePage,
+};
 
 function Router() {
   return (
@@ -70,11 +48,11 @@ function Router() {
         <Route path="/" component={HomePage} />
         <Route path="/blog" component={BlogIndexPage} />
         <Route path="/blog/:slug" component={BlogPostPage} />
-        {CITY_SLUGS.map((slug) => (
+        {DEVICE_PAGES.map((device: DevicePageInfo) => (
           <Route
-            key={slug}
-            path={cityPath(slug)}
-            component={CITY_PAGES[slug as keyof typeof CITY_PAGES]}
+            key={device.slug}
+            path={device.path}
+            component={DEVICE_PAGES_BY_PATH[device.path]}
           />
         ))}
         <Route path={ADMIN_LOGIN_PATH} component={AdminLoginPage} />

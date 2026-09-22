@@ -29,14 +29,14 @@ const secret = process.env.SUPABASE_SECRET_KEY;
 const SITE_URL = (process.env.SITE_URL || 'https://example.com').replace(/\/+$/, '');
 
 /**
- * City landing pages are static routes registered in src/App.tsx. The slug list
- * lives in src/lib/city-slugs.json so this script and the app share one source
- * of truth (the app imports the same file in src/lib/city-data.ts).
+ * Device landing pages are static routes registered in src/App.tsx. The slug
+ * list lives in src/lib/device-slugs.json so this script and the app share one
+ * source of truth (the app imports the same file in src/lib/device-data.ts).
  */
-function loadCitySlugs() {
+function loadDeviceSlugs() {
   try {
     const raw = readFileSync(
-      resolve(process.cwd(), 'src', 'lib', 'city-slugs.json'),
+      resolve(process.cwd(), 'src', 'lib', 'device-slugs.json'),
       'utf8',
     );
     const parsed = JSON.parse(raw);
@@ -44,12 +44,12 @@ function loadCitySlugs() {
       return parsed.filter((slug) => typeof slug === 'string' && slug.length > 0);
     }
   } catch (error) {
-    console.warn(`[sitemap] Could not read city slugs: ${error.message}`);
+    console.warn(`[sitemap] Could not read device slugs: ${error.message}`);
   }
   return [];
 }
 
-const CITY_SLUGS = loadCitySlugs();
+const DEVICE_SLUGS = loadDeviceSlugs();
 
 
 function escapeXml(value) {
@@ -79,8 +79,8 @@ function buildSitemap(posts = []) {
     ...(posts || []).map((post) =>
       urlBlock(`${SITE_URL}/blog/${post.slug}`, post.updated_at),
     ),
-    ...CITY_SLUGS.map((slug) =>
-      urlBlock(`${SITE_URL}/image-editor-in-${slug}`),
+    ...DEVICE_SLUGS.map((slug) =>
+      urlBlock(`${SITE_URL}/image-editor-for-${slug}`),
     ),
     '</urlset>',
     '',
@@ -118,5 +118,5 @@ if (!url) {
 
 writeFileSync(target, buildSitemap(posts), 'utf8');
 console.log(
-  `[sitemap] Wrote ${target} with ${posts.length + 2 + CITY_SLUGS.length} URLs (${posts.length} published posts, ${CITY_SLUGS.length} city pages).`,
+  `[sitemap] Wrote ${target} with ${posts.length + 2 + DEVICE_SLUGS.length} URLs (${posts.length} published posts, ${DEVICE_SLUGS.length} device pages).`,
 );
