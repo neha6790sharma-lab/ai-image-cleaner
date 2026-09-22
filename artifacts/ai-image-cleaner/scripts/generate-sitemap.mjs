@@ -20,13 +20,37 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const url = process.env.VITE_SUPABASE_URL;
 const anon = process.env.VITE_SUPABASE_ANON_KEY;
 const secret = process.env.SUPABASE_SECRET_KEY;
 const SITE_URL = (process.env.SITE_URL || 'https://example.com').replace(/\/+$/, '');
+
+/**
+ * City landing pages are static routes registered in src/App.tsx. The slug list
+ * lives in src/lib/city-slugs.json so this script and the app share one source
+ * of truth (the app imports the same file in src/lib/city-data.ts).
+ */
+function loadCitySlugs() {
+  try {
+    const raw = readFileSync(
+      resolve(process.cwd(), 'src', 'lib', 'city-slugs.json'),
+      'utf8',
+    );
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((slug) => typeof slug === 'string' && slug.length > 0);
+    }
+  } catch (error) {
+    console.warn(`[sitemap] Could not read city slugs: ${error.message}`);
+  }
+  return [];
+}
+
+const CITY_SLUGS = loadCitySlugs();
+
 
 function escapeXml(value) {
   return String(value)
@@ -54,6 +78,9 @@ function buildSitemap(posts = []) {
     urlBlock(`${SITE_URL}/blog`, newestMod),
     ...(posts || []).map((post) =>
       urlBlock(`${SITE_URL}/blog/${post.slug}`, post.updated_at),
+    ),
+    ...CITY_SLUGS.map((slug) =>
+      urlBlock(`${SITE_URL}/image-editor-in-${slug}`),
     ),
     '</urlset>',
     '',
@@ -91,5 +118,5 @@ if (!url) {
 
 writeFileSync(target, buildSitemap(posts), 'utf8');
 console.log(
-  `[sitemap] Wrote ${target} with ${posts.length + 2} URLs (${posts.length} published posts).`,
+  `[sitemap] Wrote ${target} with ${posts.length + 2 + CITY_SLUGS.length} URLs (${posts.length} published posts, ${CITY_SLUGS.length} city pages).`,
 );

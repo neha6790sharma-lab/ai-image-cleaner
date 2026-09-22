@@ -1,6 +1,7 @@
-import { useLocation } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Sparkles } from 'lucide-react';
 import { goToSection, scrollToTop } from '@/lib/section-nav';
+import { CITIES, cityPath } from '@/lib/city-data';
 
 const FOOTER_LINKS = [
   { label: 'Home', href: '/' },
@@ -60,6 +61,25 @@ export function SiteFooter() {
               >
                 {item.label}
               </button>
+            ))}
+          </nav>
+        </div>
+        <div className="mt-8 border-t border-[#252f33] pt-6">
+          <p className="font-mono text-[10px] uppercase tracking-[.18em] text-[#748487]">
+            Haryana — image editor by city
+          </p>
+          <nav
+            aria-label="Image editor in Haryana cities"
+            className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3 lg:grid-cols-4"
+          >
+            {CITIES.map((city) => (
+              <Link
+                key={city.slug}
+                href={cityPath(city.slug)}
+                className="rounded-lg py-1 text-sm font-medium text-[#9eabad] transition-colors hover:text-[#f5f1e8]"
+              >
+                Image editor in {city.name}
+              </Link>
             ))}
           </nav>
         </div>
