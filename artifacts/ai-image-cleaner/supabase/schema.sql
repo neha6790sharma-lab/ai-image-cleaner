@@ -48,11 +48,15 @@ create table if not exists public.blog_posts (
   excerpt           text not null default '',
   featured_image    text not null default '',
   meta_description  text not null default '',
+  category          text not null default 'General',
   status            text not null default 'draft' check (status in ('draft', 'published')),
   published_at      timestamptz,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
 );
+
+-- Safe migration for databases that already have blog_posts without the column
+alter table public.blog_posts add column if not exists category text not null default 'General';
 
 create index if not exists blog_posts_status_idx on public.blog_posts (status);
 create index if not exists blog_posts_published_at_idx on public.blog_posts (published_at desc);

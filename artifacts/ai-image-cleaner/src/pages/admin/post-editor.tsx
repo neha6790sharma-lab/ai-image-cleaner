@@ -23,6 +23,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Spinner } from '@/components/ui/spinner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import {
   fetchPostById,
@@ -32,6 +39,8 @@ import {
   stripMarkdown,
   formatDate,
   signOut,
+  DEFAULT_CATEGORY,
+  BLOG_CATEGORIES,
   type BlogPostInput,
 } from '@/lib/blog-data';
 import { ADMIN_DASHBOARD_PATH } from '@/lib/admin-config';
@@ -50,6 +59,7 @@ export default function PostEditorPage() {
   const [excerpt, setExcerpt] = useState('');
   const [featuredImage, setFeaturedImage] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
+  const [category, setCategory] = useState(DEFAULT_CATEGORY);
   const [published, setPublished] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const initializedRef = useRef(false);
@@ -79,6 +89,7 @@ export default function PostEditorPage() {
       setExcerpt(existing.excerpt || '');
       setFeaturedImage(existing.featured_image || '');
       setMetaDescription(existing.meta_description || '');
+      setCategory(existing.category || DEFAULT_CATEGORY);
       setPublished(existing.status === 'published');
     }
   }, [existing, isNew]);
@@ -99,6 +110,7 @@ export default function PostEditorPage() {
         excerpt: excerptText,
         featured_image: featuredImage.trim(),
         meta_description: metaText,
+        category: category || DEFAULT_CATEGORY,
         status: published ? 'published' : 'draft',
         published_at:
           published
@@ -238,6 +250,28 @@ export default function PostEditorPage() {
                       className="border-[#36454a] bg-[#101517] text-[#f5f1e8]"
                       placeholder="https://… (optional)"
                     />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-[#9eabad]">Category</Label>
+                    <Select
+                      value={category}
+                      onValueChange={(value) => setCategory(value)}
+                    >
+                      <SelectTrigger className="border-[#36454a] bg-[#101517] text-[#f5f1e8]">
+                        <SelectValue placeholder="Choose a category" />
+                      </SelectTrigger>
+                      <SelectContent className="border-[#293337] bg-[#151b1e] text-[#f5f1e8]">
+                        {BLOG_CATEGORIES.map((cat) => (
+                          <SelectItem
+                            key={cat}
+                            value={cat}
+                            className="focus:bg-[#f0bd5b]/15 focus:text-[#f0bd5b]"
+                          >
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </CardContent>
               </Card>

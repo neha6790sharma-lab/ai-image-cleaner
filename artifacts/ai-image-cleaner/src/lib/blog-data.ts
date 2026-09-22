@@ -10,6 +10,7 @@ export interface BlogPost {
   excerpt: string;
   featured_image: string;
   meta_description: string;
+  category: string;
   status: PostStatus;
   published_at: string | null;
   created_at: string;
@@ -23,6 +24,7 @@ export type BlogPostInput = {
   excerpt: string;
   featured_image: string;
   meta_description: string;
+  category?: string;
   status: PostStatus;
   published_at: string | null;
 };
@@ -31,6 +33,16 @@ export const SITE_SETTING_KEYS = {
   homepageTitle: 'homepage_title',
   homepageTagline: 'homepage_tagline',
 } as const;
+
+export const DEFAULT_CATEGORY = 'General';
+
+export const BLOG_CATEGORIES = [
+  'General',
+  'Guides',
+  'Tips',
+  'Product updates',
+  'Photography',
+] as const;
 
 export const DEFAULT_SITE_SETTINGS: Record<string, string> = {
   homepage_title: 'Make your image |just right.|',
@@ -122,7 +134,17 @@ export async function fetchAllPosts(): Promise<BlogPost[]> {
     .select('*')
     .order('created_at', { ascending: false });
   if (error) throw new Error(humanError(error) ?? 'Unable to load posts.');
-  return (data ?? []) as BlogPost[];
+  return (data ?? []).map(normalizePost);
+}
+
+function normalizePost(post: BlogPost): BlogPost {
+  return {
+    ...post,
+    category:
+      typeof post.category === 'string' && post.category.trim()
+        ? post.category
+        : DEFAULT_CATEGORY,
+  };
 }
 
 export async function fetchPublishedPosts(): Promise<BlogPost[]> {
@@ -133,7 +155,7 @@ export async function fetchPublishedPosts(): Promise<BlogPost[]> {
       .eq('status', 'published')
       .order('published_at', { ascending: false, nullsFirst: false });
     if (error) throw error;
-    return (data ?? []) as BlogPost[];
+    return (data ?? []).map(normalizePost);
   } catch {
     return [];
   }
@@ -146,7 +168,7 @@ export async function fetchPostById(id: string): Promise<BlogPost | null> {
     .eq('id', id)
     .maybeSingle();
   if (error) throw new Error(humanError(error) ?? 'Unable to load post.');
-  return (data as BlogPost) ?? null;
+  return data ? normalizePost(data as BlogPost) : null;
 }
 
 export async function fetchPostBySlug(slug: string): Promise<BlogPost | null> {
@@ -157,7 +179,7 @@ export async function fetchPostBySlug(slug: string): Promise<BlogPost | null> {
       .eq('slug', slug)
       .maybeSingle();
     if (error) throw error;
-    return (data as BlogPost) ?? null;
+    return data ? normalizePost(data as BlogPost) : null;
   } catch {
     return null;
   }
